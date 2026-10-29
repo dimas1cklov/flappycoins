@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Coin Flap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#e9e9ec; --ink:#161823; --cyan:#25F4EE; --pink:#FE2C55; --muted:#8a8b91; --card:#ffffff;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --page:#0b0b0f; } }
+:root[data-theme="dark"]{ --page:#0b0b0f; }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--page);display:flex;align-items:center;justify-content:center;font-family:Poppins,system-ui,sans-serif;color:var(--ink);overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#phone{position:relative;width:min(calc(100vw - 32px),calc((100dvh - 32px) * 9 / 16));aspect-ratio:9/16;background:#fff;border-radius:6cqw;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.06);container-type:inline-size;cursor:pointer}
+@media (max-width:520px){#phone{width:min(100vw,calc(100dvh * 9 / 16));border-radius:0}}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#fx{pointer-events:none;z-index:30}
+
+/* HUD */
+#hud{position:absolute;top:4cqw;left:4cqw;right:4cqw;display:flex;justify-content:space-between;align-items:center;z-index:10;pointer-events:none;opacity:0;transition:opacity .3s}
+#hud.on{opacity:1}
+.pill{display:flex;align-items:center;gap:2cqw;background:rgba(255,255,255,.92);border-radius:99px;padding:1.6cqw 4cqw 1.6cqw 1.8cqw;box-shadow:0 2px 10px rgba(0,0,0,.08),inset 0 0 0 1px rgba(0,0,0,.06);font-weight:800;font-size:4.6cqw;font-variant-numeric:tabular-nums}
+.pill.bump{animation:bump .35s}
+@keyframes bump{40%{transform:scale(1.14)}}
+/* Изменено: Используем картинку как фон интерфейса */
+.ci{width:6.4cqw;height:6.4cqw;border-radius:50%;background:url('https://i.ibb.co/9mNm5Lpx/photo-2026-10-27-15-43-37.jpg') center/cover;box-shadow:inset 0 0 0 .2cqw rgba(0,0,0,.1);display:grid;place-items:center;font-size:3.6cqw;font-weight:900;color:transparent}
+.prog{display:flex;flex-direction:column;align-items:flex-end;gap:1cqw;font-size:3.2cqw;font-weight:700;color:var(--ink)}
+.bar{width:24cqw;height:1.6cqw;border-radius:99px;background:rgba(22,24,35,.12);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--pink));transition:width .3s}
+
+/* overlays */
+.ov{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;pointer-events:none;opacity:0;transition:opacity .35s}
+.ov.on{opacity:1}
+.ov.on .btn{pointer-events:auto}
+.glitch{font-weight:900;color:var(--ink);text-shadow:-.6cqw -.3cqw 0 var(--cyan),.6cqw .3cqw 0 var(--pink);letter-spacing:-.02em;line-height:1.02;text-align:center;text-transform:uppercase}
+#menu{justify-content:flex-start;padding-top:15cqw}
+#menu .hook{font-size:9cqw}
+#menu .hook span{color:var(--pink);text-shadow:-.6cqw -.3cqw 0 var(--cyan)}
+#menu .sub{margin-top:3cqw;font-size:3.6cqw;font-weight:600;color:var(--muted)}
+.btn{border:0;font-family:inherit;font-weight:800;cursor:pointer;color:#fff;background:var(--pink);border-radius:99px;box-shadow:-1cqw -.6cqw 0 var(--cyan),0 10px 24px rgba(254,44,85,.35);transition:transform .15s}
+.btn:active{transform:scale(.94)}
+#play{position:absolute;top:118cqw;display:flex;align-items:center;gap:3cqw;font-size:6.4cqw;padding:3.6cqw 11cqw 3.6cqw 9cqw;animation:pulse 1.4s ease-in-out infinite}
+#play svg{width:6cqw;height:6cqw}
+@keyframes pulse{50%{transform:scale(1.07)}}
+#menu .tap{position:absolute;top:140cqw;font-size:3.4cqw;font-weight:600;color:var(--muted)}
+
+#banner{position:absolute;top:38%;left:0;right:0;z-index:15;text-align:center;pointer-events:none;opacity:0}
+#banner.on{animation:ban 1.9s ease forwards}
+#banner b{display:inline-block;background:var(--ink);color:#fff;font-size:7cqw;font-weight:900;padding:2cqw 5cqw;border-radius:2cqw;box-shadow:-1cqw 0 0 var(--cyan),1cqw 0 0 var(--pink);animation:flash .18s steps(2) infinite}
+#banner small{display:block;margin-top:2cqw;font-weight:800;font-size:3.8cqw;color:var(--pink)}
+@keyframes ban{0%{opacity:0;transform:scale(2)}12%{opacity:1;transform:scale(1)}80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.9)}}
+@keyframes flash{50%{filter:invert(1)}}
+
+#over{justify-content:center;background:rgba(255,255,255,.7);backdrop-filter:blur(3px)}
+#over .glitch{font-size:13cqw}
+#over .sc{margin:5cqw 0;background:#fff;border-radius:4cqw;padding:4cqw 10cqw;box-shadow:0 8px 30px rgba(0,0,0,.1);text-align:center}
+#over .sc p{font-size:3.2cqw;color:var(--muted);font-weight:700;letter-spacing:.1em}
+#over .sc div{font-size:10cqw;font-weight:900;font-variant-numeric:tabular-nums}
+#over .btn,#win .btn{font-size:5.6cqw;padding:3.4cqw 12cqw}
+
+/* win */
+#toast{position:absolute;top:3cqw;left:3cqw;right:3cqw;z-index:25;display:flex;gap:3cqw;align-items:center;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-radius:5cqw;padding:3.4cqw;box-shadow:0 12px 30px rgba(0,0,0,.16);transform:translateY(-140%);transition:transform .55s cubic-bezier(.2,1.4,.4,1)}
+#toast.on{transform:translateY(0)}
+#toast .ic{width:11cqw;height:11cqw;border-radius:3cqw;background:var(--ink);display:grid;place-items:center;flex:none;box-shadow:-.6cqw 0 0 var(--cyan),.6cqw 0 0 var(--pink)}
+#toast .ic svg{width:6cqw}
+#toast b{display:block;font-size:3.8cqw}
+#toast span{font-size:3.3cqw;color:#555}
+#toast em{font-style:normal;font-size:2.8cqw;color:var(--muted);margin-left:auto;align-self:flex-start}
+
+#win{justify-content:center;background:rgba(255,255,255,.55);backdrop-filter:blur(2px)}
+#card{width:80%;background:#fff;border-radius:6cqw;padding:7cqw 5cqw 6cqw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.18),inset 0 0 0 1px rgba(0,0,0,.05);transform:scale(.3) rotate(-8deg);opacity:0}
+#win.on #card{animation:pop .7s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes pop{to{transform:none;opacity:1}}
+#card .trophy{font-size:15cqw;line-height:1;animation:wob 1.2s ease-in-out infinite}
+@keyframes wob{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg) scale(1.08)}}
+#card .glitch{font-size:12cqw;margin-top:2cqw}
+#card .lbl{margin-top:4cqw;font-size:3.2cqw;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+#card .total{display:flex;align-items:center;justify-content:center;gap:2.4cqw;margin:1cqw 0 5cqw;font-size:11cqw;font-weight:900;font-variant-numeric:tabular-nums}
+#card .total .ci{width:10cqw;height:10cqw;font-size:5.6cqw}
+#card .total.done{animation:bump .5s}
+</style>
+</head>
+<body>
+<div id="phone">
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div class="pill" id="balPill"><div class="ci">$</div><span id="bal">0</span></div>
+    <div class="prog"><span id="progTxt">0 / 3</span><div class="bar"><i id="progBar"></i></div></div>
+  </div>
+
+  <div class="ov on" id="menu">
+    <div class="glitch hook">Only <span>1%</span><br>beat the<br>super obstacle</div>
+    <div class="sub">Tap to fly · Pass pipes · Earn coins</div>
+    <button class="btn" id="play"><svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.3-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>PLAY</button>
+    <div class="tap">Win up to 6,200 coins</div>
+  </div>
+
+  <div id="banner"><b>⚡ SUPER OBSTACLE ⚡</b><small>+3,000 – 5,000 COINS</small></div>
+
+  <div class="ov" id="over">
+    <div class="glitch">Game<br>Over</div>
+    <div class="sc"><p>BALANCE</p><div id="overBal">0</div></div>
+    <button class="btn" id="retry">TRY AGAIN</button>
+  </div>
+
+  <div id="toast">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg></div>
+    <div><b>You won! 🎉</b><span id="toastTxt">Coins added to your balance</span></div>
+    <em>now</em>
+  </div>
+
+  <div class="ov" id="win">
+    <div id="card">
+      <div class="trophy">🏆</div>
+      <div class="glitch">You<br>won!</div>
+      <div class="lbl">TOTAL BALANCE</div>
+      <div class="total" id="totalWrap"><div class="ci">$</div><span id="total">0</span></div>
+      <button class="btn" id="again">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <canvas id="fx"></canvas>
+</div>
+
+<script>
+/* =========================================================
+   COIN FLAP — config
+   ========================================================= */
+const W = 360, H = 640, GROUND = 596;   // logical canvas size (9:16)
+const CYAN = '#25F4EE', PINK = '#FE2C55', INK = '#161823';
+
+const CFG = {
+  gravity: 1450,           // px/s²
+  flapVel: -420,           // px/s
+  speed: 150,              // scroll speed, px/s
+  superSpeed: 110,         // slower while the super pillar is on screen
+  regularCount: 3,         // regular pillars before the super one
+  pipeSpacing: 225,
+  pipeGap: 185,
+  reward: [200, 400],      // per regular pillar
+  superReward: [3000, 5000],
+  superGap: 250,           // wide gap → easy pass
+  superAmp: 65,            // up/down travel of the super pillar
+  superFreq: 1.1,          // rad/s
+  countUpMs: 2000,         // win balance count-up duration
+  confettiPerSec: 55
+};
+
+/* =========================================================
+   Setup & helpers
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const phone = $('phone');
+const cv = $('game'), ctx = cv.getContext('2d');
+const fx = $('fx'),   fctx = fx.getContext('2d');
+
+const fmt   = n => Math.round(n).toLocaleString('en-US');
+const rand  = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function fit() {
+  const r = phone.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  for (const c of [cv, fx]) {
+    c.width = Math.round(r.width * dpr);
+    c.height = Math.round(r.height * dpr);
+  }
+  const s = r.width / W * dpr;
+  ctx.setTransform(s, 0, 0, s, 0, 0);
+  fctx.setTransform(s, 0, 0, s, 0, 0);
+}
+addEventListener('resize', fit);
+fit();
+
+/** Restart a CSS animation by toggling its class. */
+function replayClass(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+
+/* =========================================================
+   Audio (tiny WebAudio synth, no files)
+   ========================================================= */
+let ac = null;
+function tone(freq, dur = .12, type = 'sine', vol = .12, slide = 0, delay = 0) {
+  if (!ac) return;
+  const t0 = ac.currentTime + delay;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t0);
+  if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, t0 + dur);
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  o.connect(g).connect(ac.destination);
+  o.start(t0);
+  o.stop(t0 + dur + .02);
+}
+const sfx = {
+  flap:  () => tone(520, .09, 'triangle', .07, 1.6),
+  coin:  () => { tone(988, .08, 'square', .05); tone(1319, .25, 'square', .05, 0, .07); },
+  big:   () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .35, 'square', .05, 0, i * .07)),
+  hit:   () => tone(180, .35, 'sawtooth', .1, .3),
+  tick:  () => tone(1400 + Math.random() * 300, .03, 'square', .025),
+  alarm: () => { for (let i = 0; i < 4; i++) tone(880, .12, 'sawtooth', .05, .7, i * .18); }
+};
+
+/* =========================================================
+   Drawing primitives
+   ========================================================= */
+function roundRect(c, x, y, w, h, r) { c.beginPath(); c.roundRect(x, y, w, h, r); }
+function circle(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); }
+
+// Изменено: Загружаем изображение
+const coinImg = new Image();
+coinImg.src = 'https://i.ibb.co/9mNm5Lpx/photo-2026-10-27-15-43-37.jpg';
+
+/** Image coin; `spin` (-1..1) squashes it horizontally to fake rotation. */
+function drawCoin(c, x, y, r, spin = 1, alpha = 1) {
+  c.save();
+  c.globalAlpha = alpha;
+  c.translate(x, y);
+  c.scale(Math.max(.12, Math.abs(spin)), 1);
+
+  // Рисуем круглое изображение вместо градиента
+  c.beginPath();
+  c.arc(0, 0, r, 0, Math.PI * 2);
+  c.clip();
+
+  if (coinImg.complete) {
+    c.drawImage(coinImg, -r, -r, r * 2, r * 2);
+  } else {
+    // Временная заглушка пока картинка грузится
+    c.fillStyle = '#f5a300';
+    c.fill();
+  }
+
+  c.restore();
+}
+
+/** Text with TikTok-style cyan/pink offset shadow. */
+function glitchText(txt, x, y, size, main = INK, off = 2) {
+  ctx.font = `900 ${size}px Poppins,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = CYAN; ctx.fillText(txt, x - off, y - off / 2);
+  ctx.fillStyle = PINK; ctx.fillText(txt, x + off, y + off / 2);
+  ctx.fillStyle = main; ctx.fillText(txt, x, y);
+}
+
+/* =========================================================
+   Background flying coins
+   ========================================================= */
+function newBgCoin(init) {
+  return {
+    x: init ? rand(0, W) : W + rand(20, 120), y: rand(20, GROUND - 20),
+    r: rand(6, 15), vx: rand(-60, -20), vy: rand(-12, 12),
+    ph: rand(0, 6.3), spin: rand(2, 5), a: rand(.18, .45)
+  };
+}
+const bgCoins = Array.from({ length: 22 }, () => newBgCoin(true));
+
+/* =========================================================
+   Game state
+   ========================================================= */
+// state: 'menu' (auto-play demo) | 'play' | 'dead' | 'won'
+let state = 'menu', t = 0, last = performance.now();
+let P, pipes, balance, shownBalance, popups, passed, shake, flash, speed, announced;
+
+function makeRegularPipe(x, reward) {
+  return { x, w: 62, gapY: rand(220, 420), gap: CFG.pipeGap, reward, passed: false };
+}
+
+function reset(demo = false) {
+  P = { x: 96, y: 300, vy: 0, rot: 0, r: 15, hit: 10 };
+  pipes = [];
+  let x = demo ? W * .75 : W + 90;
+
+  if (demo) {
+    for (let i = 0; i < 4; i++, x += CFG.pipeSpacing) pipes.push(makeRegularPipe(x, 0));
+  } else {
+    for (let i = 0; i < CFG.regularCount; i++, x += CFG.pipeSpacing)
+      pipes.push(makeRegularPipe(x, Math.round(rand(...CFG.reward))));
+    pipes.push({
+      x: x + 110, w: 120, sup: true,
+      base: 330, gapY: 330, ph: 0, gap: CFG.superGap,
+      reward: Math.round(rand(...CFG.superReward)), passed: false
+    });
+  }
+  balance = shownBalance = passed = shake = flash = 0;
+  popups = [];
+  speed = CFG.speed;
+  announced = false;
+  $('bal').textContent = '0';
+  updateProgress();
+}
+reset(true);
+
+function updateProgress() {
+  const n = CFG.regularCount;
+  $('progTxt').textContent = `${Math.min(passed, n)} / ${n}` + (passed > n ? ' ★' : '');
+  $('progBar').style.width = Math.min(100, passed / (n + 1) * 100) + '%';
+}
+
+/* =========================================================
+   Input
+   ========================================================= */
+function flap() {
+  if (state !== 'play') return;
+  P.vy = CFG.flapVel;
+  sfx.flap();
+}
+function start() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  ac?.resume?.();
+  reset();
+  state = 'play';
+  P.vy = -380;
+  for (const id of ['menu', 'over', 'win']) $(id).classList.remove('on');
+  $('toast').classList.remove('on');
+  $('hud').classList.add('on');
+  confettiOn = false;
+  confetti = [];
+}
+
+phone.addEventListener('pointerdown', e => { if (!e.target.closest('.btn')) flap(); });
+addEventListener('keydown', e => {
+  if (e.code !== 'Space' && e.code !== 'ArrowUp') return;
+  e.preventDefault();
+  state === 'menu' ? start() : flap();
+});
+$('play').onclick = $('retry').onclick = $('again').onclick = start;
+
+/* =========================================================
+   Game events
+   ========================================================= */
+function popup(x, y, txt, big = false) { popups.push({ x, y, txt, big, life: 0 }); }
+
+function die() {
+  if (state !== 'play') return;
+  state = 'dead';
+  shake = 12; flash = 1;
+  sfx.hit();
+  setTimeout(() => {
+    $('overBal').textContent = fmt(balance);
+    $('over').classList.add('on');
+  }, 650);
+}
+
+function win() {
+  state = 'won';
+  setTimeout(() => {
+    $('toastTxt').textContent = `+${fmt(balance)} coins added to your balance`;
+    $('toast').classList.add('on');
+    sfx.big();
+  }, 350);
+  setTimeout(() => {
+    $('hud').classList.remove('on');
+    $('win').classList.add('on');
+    burst();
+    confettiOn = true;
+    countUp();
+  }, 900);
+}
+
+/** Win-card balance: 0 → total in CFG.countUpMs with ease-out. */
+function countUp() {
+  const el = $('total'), wrap = $('totalWrap'), t0 = performance.now();
+  let lastTick = 0;
+  wrap.classList.remove('done');
+  (function step(now) {
+    const k = Math.min(1, (now - t0) / CFG.countUpMs);
+    el.textContent = fmt(balance * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) {
+      if (now - lastTick > 70) { sfx.tick(); lastTick = now; }
+      requestAnimationFrame(step);
+    } else {
+      wrap.classList.add('done');
+      sfx.big();
+    }
+  })(t0);
+}
+
+function onPass(p) {
+  p.passed = true;
+  passed++;
+  balance += p.reward;
+  updateProgress();
+  replayClass($('balPill'), 'bump');
+  if (p.sup) {
+    popup(W / 2, 260, '+' + fmt(p.reward), true);
+    flash = .8; shake = 10;
+    burst(W / 2, 260, 90);
+    sfx.big();
+    win();
+  } else {
+    popup(P.x + 20, P.y - 24, '+' + p.reward);
+    sfx.coin();
+  }
+}
+
+/* =========================================================
+   Update
+   ========================================================= */
+function applyGravity(dt) {
+  P.vy += CFG.gravity * dt;
+  P.y += P.vy * dt;
+  const targetRot = clamp(P.vy / 650, -.5, 1.1);
+  P.rot += (targetRot - P.rot) * Math.min(1, dt * 10);
+}
+
+function hitsPipe(p) {
+  // super pillar gets a forgiving hitbox
+  const padX = p.sup ? 15 : 2, padY = p.sup ? 12 : 0;
+  const top = p.gapY - p.gap / 2 - padY, bot = p.gapY + p.gap / 2 + padY;
+  const overlapX = P.x + P.hit > p.x + padX && P.x - P.hit < p.x + p.w - padX;
+  return overlapX && (P.y - P.hit < top || P.y + P.hit > bot);
+}
+
+function updateDemo(dt) {
+  // menu background: the coin flies itself through endless pillars
+  const next = pipes.find(q => q.x + q.w > P.x - P.r);
+  if (P.y > (next ? next.gapY + 18 : 320) && P.vy > -60) P.vy = -400;
+  applyGravity(dt);
+  P.y = clamp(P.y, P.r, GROUND - P.r);
+
+  let maxX = Math.max(...pipes.map(q => q.x));
+  for (const q of pipes) {
+    q.x -= CFG.speed * dt;
+    if (q.x + q.w < -20) { q.x = maxX = maxX + CFG.pipeSpacing; q.gapY = rand(230, 430); }
+  }
+}
+
+function updateGame(dt) {
+  const sup = pipes.find(p => p.sup);
+  sup.ph += dt * CFG.superFreq;
+  sup.gapY = sup.base + Math.sin(sup.ph) * CFG.superAmp;
+
+  if (state === 'play') {
+    speed = sup.x < W && sup.x + sup.w > 0 ? CFG.superSpeed : CFG.speed;
+    applyGravity(dt);
+    if (P.y < P.r) { P.y = P.r; P.vy = 0; }
+    if (P.y + P.hit > GROUND) die();
+    if (!announced && sup.x < W + 140) {
+      announced = true;
+      replayClass($('banner'), 'on');
+      sfx.alarm();
+      shake = 6;
+    }
+  } else if (state === 'won') {
+    P.y += (300 - P.y) * dt * 2;
+    P.x += (W / 2 - P.x) * dt * 1.5;
+    P.rot *= .9;
+  } else if (state === 'dead') {
+    P.vy += 1600 * dt;
+    P.y = Math.min(GROUND - P.r, P.y + P.vy * dt);
+    P.rot += dt * 6;
+    return;
+  }
+
+  for (const p of pipes) {
+    p.x -= speed * dt;
+    if (state !== 'play') continue;
+    if (hitsPipe(p)) die();
+    if (!p.passed && p.x + p.w < P.x - P.r) onPass(p);
+  }
+}
+
+function update(dt) {
+  t += dt;
+  for (const b of bgCoins) {
+    b.x += b.vx * dt;
+    b.y += b.vy * dt + Math.sin(t * 1.3 + b.ph) * .3;
+    b.ph += b.spin * dt;
+    if (b.x < -30) Object.assign(b, newBgCoin(false));
+  }
+  if (shownBalance < balance) {
+    shownBalance = Math.min(balance, shownBalance + Math.max(8, (balance - shownBalance) * 6 * dt));
+    $('bal').textContent = fmt(shownBalance);
+  }
+
+  state === 'menu' ? updateDemo(dt) : updateGame(dt);
+
+  for (const q of popups) q.life += dt;
+  popups = popups.filter(q => q.life < (q.big ? 1.8 : 1));
+  shake *= Math.pow(.02, dt);
+  flash = Math.max(0, flash - dt * 2.5);
+}
+
+/* =========================================================
+   Render
+   ========================================================= */
+function drawPipe(p) {
+  const top = p.gapY - p.gap / 2, bot = p.gapY + p.gap / 2;
+  const { x, w } = p, lip = 8, capH = 22;
+  const segment = (y, h, capY) => {
+    for (const [dx, col] of [[-3, CYAN], [3, PINK], [0, INK]]) {
+      ctx.fillStyle = col;
+      roundRect(ctx, x + dx + 4, y, w - 8, h, 6); ctx.fill();
+      roundRect(ctx, x + dx - lip / 2, capY, w + lip, capH, 8); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.12)'; roundRect(ctx, x + 12, y, 8, h, 4); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.18)'; roundRect(ctx, x + 2, capY + 6, w - 4, 3, 2); ctx.fill();
+  };
+  segment(-10, top + 10, top - capH);
+  segment(bot, GROUND - bot, bot);
+}
+
+function drawSaw(x, y, r, angle) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(angle);
+  ctx.fillStyle = INK; ctx.beginPath();
+  for (let i = 0; i < 24; i++) {
+    const a = i / 24 * Math.PI * 2, rad = i % 2 ? r * .72 : r;
+    ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+  }
+  ctx.fill();
+  ctx.fillStyle = PINK; circle(ctx, 0, 0, r * .45); ctx.fill();
+  ctx.fillStyle = CYAN; circle(ctx, 0, 0, r * .18); ctx.fill();
+  ctx.restore();
+}
+
+function drawSuper(p) {
+  const top = p.gapY - p.gap / 2, bot = p.gapY + p.gap / 2;
+  const { x, w } = p, cx = x + w / 2;
+  const pulse = .5 + .5 * Math.sin(t * 8);
+  const columns = [[-20, top + 20], [bot, GROUND - bot + 20]];
+
+  // glowing columns
+  ctx.save();
+  ctx.shadowColor = pulse > .5 ? PINK : CYAN; ctx.shadowBlur = 30; ctx.fillStyle = INK;
+  for (const [y0, h] of columns) { roundRect(ctx, x, y0, w, h, 14); ctx.fill(); }
+  ctx.restore();
+
+  // moving hazard stripes
+  const off = (t * 60) % 40;
+  for (const [y0, h] of columns) {
+    ctx.save();
+    roundRect(ctx, x + 8, y0 + 8, w - 16, h - 16, 10); ctx.clip();
+    ctx.globalAlpha = .85;
+    for (let k = -60; k < h + 120; k += 40) {
+      const y = y0 + k + off;
+      ctx.fillStyle = (k / 40 | 0) % 2 ? PINK : CYAN;
+      ctx.beginPath();
+      ctx.moveTo(x, y); ctx.lineTo(x + w, y - 50); ctx.lineTo(x + w, y - 30); ctx.lineTo(x, y + 20);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // vertical labels
+  for (const [label, y] of [['SUPER', top / 2], ['+5K', (bot + GROUND) / 2]]) {
+    ctx.save(); ctx.translate(cx, y); ctx.rotate(-Math.PI / 2);
+    ctx.translate(-cx, -y); glitchText(label, cx, y, 30, '#fff');
+    ctx.restore();
+  }
+
+  // decorative saws on the gap edges (no collision)
+  for (let i = 0; i < 3; i++) {
+    const sx = x + 18 + i * (w - 36) / 2, dir = i % 2 ? -1 : 1;
+    drawSaw(sx, top, 17, t * 7 * dir);
+    drawSaw(sx, bot, 17, -t * 7 * dir);
+  }
+
+  // orbiting spike balls (no collision)
+  for (let i = 0; i < 4; i++) {
+    const a = t * 2.4 + i * Math.PI / 2;
+    const ox = cx + Math.cos(a) * w * .75, dy = Math.sin(a) * 40;
+    for (const oy of [top - 70 + dy, bot + 70 + dy]) {
+      ctx.fillStyle = i % 2 ? PINK : CYAN; circle(ctx, ox, oy, 7); ctx.fill();
+      ctx.strokeStyle = INK; ctx.lineWidth = 2; ctx.stroke();
+    }
+  }
+
+  // flickering lasers beside the columns (never across the gap)
+  ctx.save();
+  ctx.globalAlpha = .55 + .45 * pulse; ctx.lineWidth = 3;
+  for (const [y1, y2] of [[top - 110, top - 14], [bot + 14, bot + 110]]) {
+    for (const [lx, col] of [[x - 30, PINK], [x + w + 30, CYAN]]) {
+      ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(lx, y1); ctx.lineTo(lx, y2); ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // arrows pointing into the gap
+  if (!p.passed) {
+    ctx.save();
+    ctx.globalAlpha = .35 + .35 * pulse; ctx.fillStyle = INK;
+    ctx.font = '800 13px Poppins,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('▶ ▶ ▶', x - 50, p.gapY + 5);
+    ctx.restore();
+  }
+}
+
+function drawBackground() {
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(-20, -20, W + 40, H + 40);
+  for (const [gx, gy, rad, rgb, a] of [[40, 120, 260, '37,244,238', .18], [330, 470, 280, '254,44,85', .13]]) {
+    const g = ctx.createRadialGradient(gx, gy, 10, gx, gy, rad);
+    g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  for (const b of bgCoins) drawCoin(ctx, b.x, b.y, b.r, Math.cos(b.ph), b.a);
+}
+
+function drawMenuFade() {
+  // soft white veil so the hook text and PLAY button stay readable over the demo
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  [[0, .7], [.32, .35], [.45, 0], [.62, 0], [.78, .3], [.92, 0]]
+    .forEach(([s, a]) => g.addColorStop(s, `rgba(255,255,255,${a})`));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, GROUND);
+}
+
+function drawGround() {
+  ctx.fillStyle = INK;
+  ctx.fillRect(-20, GROUND, W + 40, H - GROUND + 20);
+  const off = state === 'dead' ? 0 : (t * 150) % 28;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, GROUND, W, 10); ctx.clip();
+  for (let x = -28; x < W + 28; x += 28) {
+    const sx = x - off;
+    ctx.fillStyle = Math.floor((x + off) / 28) % 2 ? CYAN : PINK;
+    ctx.beginPath();
+    ctx.moveTo(sx, GROUND); ctx.lineTo(sx + 14, GROUND); ctx.lineTo(sx + 4, GROUND + 10); ctx.lineTo(sx - 10, GROUND + 10);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,.35)';
+  ctx.font = '700 11px Poppins,sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('@coinflap', W / 2, GROUND + 30);
+}
+
+function drawPlayer() {
+  ctx.save();
+  ctx.translate(P.x, P.y); ctx.rotate(P.rot);
+  ctx.globalAlpha = .55;
+  ctx.fillStyle = CYAN; circle(ctx, -2.5, -1, P.r); ctx.fill();
+  ctx.fillStyle = PINK; circle(ctx, 2.5, 1, P.r); ctx.fill();
+  ctx.globalAlpha = 1;
+  drawCoin(ctx, 0, 0, P.r);
+  ctx.restore();
+}
+
+function drawPopups() {
+  for (const q of popups) {
+    const dur = q.big ? 1.8 : 1, k = q.life / dur;
+    const y = q.y - k * (q.big ? 40 : 46);
+    const alpha = k < .75 ? 1 : 1 - (k - .75) / .25;
+    const scale = q.big ? (k < .15 ? k / .15 * 1.3 : 1.3 - Math.min(.3, (k - .15) * 2)) : 1;
+    const size = q.big ? 44 : 22;
+    ctx.save();
+    ctx.globalAlpha = alpha; ctx.translate(q.x, y); ctx.scale(scale, scale);
+    ctx.font = `900 ${size}px Poppins,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = q.big ? 8 : 5; ctx.strokeStyle = '#fff'; ctx.strokeText(q.txt, 0, 0);
+    glitchText(q.txt, 0, 0, size);
+    const tw = ctx.measureText(q.txt).width;
+    drawCoin(ctx, tw / 2 + (q.big ? 28 : 15), 0, q.big ? 18 : 10, Math.cos(t * 8));
+    ctx.restore();
+  }
+}
+
+function render() {
+  ctx.save();
+  if (shake > .3) ctx.translate(rand(-shake, shake), rand(-shake, shake));
+  drawBackground();
+  for (const p of pipes) {
+    if (p.x > W + 40 || p.x + p.w < -60) continue;
+    p.sup ? drawSuper(p) : drawPipe(p);
+  }
+  if (state === 'menu') drawMenuFade();
+  drawGround();
+  drawPlayer();
+  drawPopups();
+  ctx.restore();
+  if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash * .8})`; ctx.fillRect(0, 0, W, H); }
+}
+
+/* =========================================================
+   Confetti (endless after a win)
+   ========================================================= */
+let confetti = [], confettiOn = false;
+const CONFETTI_COLORS = [CYAN, PINK, INK, '#FFD23F', '#ffffff', '#7B61FF'];
+
+function confettiPiece(x, y, fromBurst) {
+  const a = rand(0, Math.PI * 2), v = fromBurst ? rand(150, 520) : 0;
+  return {
+    x: x ?? rand(-10, W + 10), y: y ?? rand(-60, -10),
+    vx: fromBurst ? Math.cos(a) * v : rand(-30, 30),
+    vy: fromBurst ? Math.sin(a) * v - 200 : rand(60, 160),
+    w: rand(5, 10), h: rand(8, 15), r: rand(0, 6.3), vr: rand(-8, 8), ph: rand(0, 6.3),
+    color: CONFETTI_COLORS[Math.random() * CONFETTI_COLORS.length | 0],
+    coin: Math.random() < .08
+  };
+}
+function burst(x = W / 2, y = H * .4, n = 160) {
+  for (let i = 0; i < n; i++) confetti.push(confettiPiece(x, y, true));
+}
+
+function updateConfetti(dt) {
+  if (confettiOn) {
+    const n = dt * CFG.confettiPerSec;
+    for (let i = 0; i < Math.floor(n); i++) confetti.push(confettiPiece());
+    if (Math.random() < n % 1) confetti.push(confettiPiece());
+  }
+  for (const c of confetti) {
+    if (c.vy < 220) c.vy += 420 * dt;
+    c.vx *= Math.pow(.6, dt);
+    c.x += (c.vx + Math.sin(t * 3 + c.ph) * 40) * dt;
+    c.y += c.vy * dt;
+    c.r += c.vr * dt;
+  }
+  confetti = confetti.filter(c => c.y < H + 30);
+}
+
+function renderConfetti() {
+  fctx.clearRect(0, 0, W, H);
+  for (const c of confetti) {
+    if (c.coin) { drawCoin(fctx, c.x, c.y, 7, Math.cos(c.r * 2)); continue; }
+    fctx.save();
+    fctx.translate(c.x, c.y); fctx.rotate(c.r); fctx.scale(1, Math.cos(c.r * 1.7 + c.ph));
+    fctx.fillStyle = c.color;
+    fctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+    if (c.color === '#ffffff') { fctx.strokeStyle = '#ddd'; fctx.lineWidth = 1; fctx.strokeRect(-c.w / 2, -c.h / 2, c.w, c.h); }
+    fctx.restore();
+  }
+}
+
+/* =========================================================
+   Main loop
+   ========================================================= */
+function loop(now) {
+  const dt = Math.min(.033, (now - last) / 1000);
+  last = now;
+  update(dt);
+  updateConfetti(dt);
+  render();
+  renderConfetti();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
